@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Alex | Creative Developer</title>
+    <style>
+        :root {
+            --bg-color: #0a0a0a;
+            --card-bg: #161616;
+            --text-main: #ffffff;
+            --text-sub: #888888;
+            --accent: #ccff00;
+            --border: rgba(255, 255, 255, 0.05);
+            --gap: 16px;
+            --radius: 24px;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 2rem;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.05'/%3E%3C/svg%3E");
+            /* 增加透视感，让3D效果更明显 */
+            perspective: 2000px;
+        }
+
+        .bento-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            grid-template-rows: repeat(4, minmax(100px, auto));
+            gap: var(--gap);
+            max-width: 1000px;
+            width: 100%;
+        }
+
+        .card {
+            background-color: var(--card-bg);
+            border-radius: var(--radius);
+            border: 1px solid var(--border);
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            
+            /* 3D 变换的关键属性 */
+            transform-style: preserve-3d;
+            transform: perspective(1000px);
+            will-change: transform; /* 性能优化 */
+        }
+
+        /* 卡片内容层，用于视差效果（内容浮起） */
+        .card-content {
+            padding: 24px;
+            height: 100%;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            transform: translateZ(20px); /* 让内容在Z轴上凸起 */
+            z-index: 2;
+            pointer-events: none; /* 让鼠标事件穿透到card本身 */
+        }
+        
+        /* 如果卡片是链接，恢复点击 */
+        a.card .card-content { pointer-events: none; }
+        a.card { text-decoration: none; cursor: pointer; }
+
+        /* 动态光泽层 */
+        .card-glare {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(
+                circle at 50% 50%, 
+                rgba(255, 255, 255, 0.1) 0%, 
+                rgba(255, 255, 255, 0) 80%
+            );
+            opacity: 0;
+            mix-blend-mode: overlay; /* 混合模式，让光泽更自然 */
+            pointer-events: none;
+            transition: opacity 0.3s;
+            z-index: 3;
+        }
+
+        /* 各个卡片的特定布局 */
+        .card-profile { grid-column: span 2; grid-row: span 2; }
+        .card-profile .card-content { align-items: center; justify-content: center; text-align: center; }
+        
+        .card-map { grid-column: span 1; grid-row: span 1; background: linear-gradient(45deg, #222, #333); }
+        .card-social { grid-column: span 1; grid-row: span 2; background-color: var(--accent); color: #000; }
+        .card-social h2, .card-social p { color: #000; border-color: rgba(0,0,0,0.1); }
+        
+        .card-stack { grid-column: span 1; grid-row: span 2; }
+        .card-project { grid-column: span 2; grid-row: span 2; }
+        .card-status { grid-column: span 1; grid-row: span 1; }
+
+        /* 元素样式 */
+        .avatar {
+            width: 100px;
+            height: 100px;
+            background-color: #333;
+            border-radius: 50%;
+            margin-bottom: 1rem;
+            object-fit: cover;
+            border: 2px solid var(--accent);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.3); /* 增加阴影 */
+        }
+
+        h1 { font-size: 2.5rem; font-weight: 800; letter-spacing: -1px; line-height: 1.1; text-shadow: 0 5px 15px rgba(0,0,0,0.5); }
+        h2 { font-size: 1.2rem; font-weight: 600; margin-bottom: 0.5rem; }
+        p { color: var(--text-sub); font-size: 0.9rem; line-height: 1.5; }
+        .card-social p { color: rgba(0,0,0,0.7); }
+
+        .tag {
+            display: inline-block;
+            padding: 4px 12px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 100px;
+            font-size: 0.75rem;
+            margin-right: 6px;
+            margin-bottom: 6px;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            margin-top: auto;
+            color: inherit;
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+        .arrow { margin-left: 5px; transition: transform 0.2s; }
+        .card:hover .arrow { transform: translateX(5px); }
+
+        /* 响应式 */
+        @media (max-width: 768px) {
+            .bento-grid { grid-template-columns: 1fr; grid-template-rows: auto; }
+            .card-profile, .card-map, .card-social, .card-stack, .card-project, .card-status { grid-column: span 1; grid-row: auto; }
+            body { padding: 1rem; }
+            /* 手机端禁用3D效果以节省电量 */
+            .card { transform: none !important; } 
+            .card-content { transform: none !important; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="bento-grid">
+        
+        <div class="card card-profile tilt-card">
+            <div class="card-glare"></div>
+            <div class="card-content">
+                < img src="https://api.dicebear.com/7.x/notionists/svg?seed=Alex" alt="Avatar" class="avatar">
+                <div>
+                    <p style="color: var(--accent); font-weight: bold; letter-spacing: 1px; text-transform: uppercase; font-size: 0.8rem; margin-bottom: 10px;">Hello World</p >
+                    <h1>我是 Hence.<br>某大学傻逼大学生。</h1>
+                </div>
+            </div>
+        </div>
+
+        <div class="card card-map tilt-card">
+            <div class="card-glare"></div>
+            <div class="card-content">
+                <h2 id="clock">00:00</h2>
+                <p>Shanghai, CN</p >
+                <div style="margin-top:auto; width: 100%; height: 40px; background: rgba(255,255,255,0.1); border-radius: 12px; position: relative;">
+                    <div style="position: absolute; top: 50%; left: 50%; width: 8px; height: 8px; background: var(--accent); border-radius: 50%; transform: translate(-50%, -50%); box-shadow: 0 0 0 4px rgba(204, 255, 0, 0.3);"></div>
+                </div>
+            </div>
+        </div>
+
+        <a href=" " class="card card-social tilt-card">
+            <div class="card-glare"></div>
+            <div class="card-content">
+                <div style="display: flex; justify-content: space-between; width: 100%;">
+                    <h2>Let's<br>Connect</h2>
+                    <span style="font-size: 1.5rem;">↗</span>
+                </div>
+                <div style="margin-top: auto;">
+                    <p style="font-weight: 600;">Twitter / X</p >
+                    <p style="font-weight: 600;">Instagram</p >
+                </div>
+            </div>
+        </a >
+
+        <div class="card card-stack tilt-card">
+            <div class="card-glare"></div>
+            <div class="card-content">
+                <h2>Tech Stack</h2>
+                <div style="margin-top: 10px;">
+                    <span class="tag">React</span> <span class="tag">Next.js</span>
+                    <span class="tag">Three.js</span> <span class="tag">AI/LLM</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="card card-status tilt-card">
+            <div class="card-glare"></div>
+            <div class="card-content">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <span style="width: 10px; height: 10px; background: #00ff88; border-radius: 50%; box-shadow: 0 0 10px #00ff88;"></span>
+                    <h2 style="font-size: 1rem; margin:0;">Available</h2>
+                </div>
+                <p style="margin-top: 5px;">Accepting Projects</p >
+            </div>
+        </div>
+
+        <div class="card card-project tilt-card">
+            <div class="card-glare"></div>
+            <div class="card-content">
+                <p style="text-transform: uppercase; letter-spacing: 1px; font-size: 0.75rem;">Featured</p >
+                <h2 style="font-size: 2rem; margin-top: 10px;">Neon SaaS<br>Platform</h2>
+                <p style="margin-top: 10px; max-width: 80%;">极致的 3D 数据可视化体验。</p >
+                <div class="btn">View Case Study <span class="arrow">→</span></div>
+            </div>
+            <div style="position: absolute; bottom: -20px; right: -20px; width: 100px; height: 100px; border: 1px solid rgba(255,255,255,0.1); border-radius: 50%; z-index: 1;"></div>
+        </div>
+
+    </div>
+
+    <script>
+        // 1. 时钟逻辑
+        function updateTime() {
+            const now = new Date();
+            document.getElementById('clock').textContent = 
+                `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+        }
+        setInterval(updateTime, 1000);
+        updateTime();
+
+        // 2. 3D 倾斜特效逻辑 (核心部分)
+        const cards = document.querySelectorAll('.tilt-card');
+
+        cards.forEach(card => {
+            card.addEventListener('mousemove', (e) => {
+                const rect = card.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const y = e.clientY - rect.top;
+                
+                // 计算鼠标相对于卡片中心的百分比 (-1 到 1)
+                const centerX = rect.width / 2;
+                const centerY = rect.height / 2;
+                
+                const rotateX = ((y - centerY) / centerY) * -10; // X轴旋转度数 (上下)
+                const rotateY = ((x - centerX) / centerX) * 10;  // Y轴旋转度数 (左右)
+
+                // 设置光泽 (Glare) 的位置
+                const glare = card.querySelector('.card-glare');
+                glare.style.background = `radial-gradient(circle at ${x}px ${y}px, rgba(255,255,255,0.15) 0%, rgba(255,255,255,0) 80%)`;
+                glare.style.opacity = 1;
+
+                // 应用 3D 变换
+                card.style.transform = `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) scale3d(1.02, 1.02, 1.02)`;
+            });
+
+            card.addEventListener('mouseleave', () => {
+                // 鼠标离开时复原
+                card.style.transform = 'perspective(1000px) rotateX(0) rotateY(0) scale3d(1, 1, 1)';
+                const glare = card.querySelector('.card-glare');
+                glare.style.opacity = 0;
+            });
+        });
+    </script>
+</body>
+</html>
